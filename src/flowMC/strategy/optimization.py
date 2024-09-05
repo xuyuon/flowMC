@@ -81,11 +81,24 @@ class optimization_Adam(Strategy):
 
             opt_state = self.solver.init(initial_position)
 
+            # stop when nan or inf is encountered
+            def _stop(carry, data):
+                _, params, _ = carry
+                return jnp.isinf(params).any() or jnp.isnan(params).any()
+            
             (key, params, opt_state), _ = jax.lax.scan(
                 _kernel,
                 (key, initial_position, opt_state),
                 jnp.arange(self.n_steps),
+                is_carry=True,
+                length=1,
+                stop=_stop,
             )
+            # (key, params, opt_state), _ = jax.lax.scan(
+            #     _kernel,
+            #     (key, initial_position, opt_state),
+            #     jnp.arange(self.n_steps),
+            # )
 
             return params  # type: ignore
 
